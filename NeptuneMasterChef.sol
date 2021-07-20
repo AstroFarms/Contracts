@@ -1304,6 +1304,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
  
     // The NEPTUNE TOKEN!
     NeptuneToken public neptune;
+    // The LEO NFT
     LeoNFT public leoNFT;
     // Dev address.
     address public devaddr;
@@ -1376,7 +1377,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     }
 
     function isLeoVIP(address _address) public view returns (bool) {
-      return wall.balanceOf(_address) > 0;
+      return leoNFT.balanceOf(_address) > 0;
     }
 
     // Update the given pool's NEPTUNE allocation point and deposit fee. Can only be called by the owner.
