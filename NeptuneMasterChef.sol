@@ -4,8 +4,7 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
- 
-add NFT contract ***********************
+
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -1305,7 +1304,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // The NEPTUNE TOKEN!
     NeptuneToken public neptune;
     // The LEO NFT
-    LeoNFT public leoNFT;
+    forgeToken public leoNFT;
     // Dev address.
     address public devaddr;
     // NEPTUNE tokens created per block.
@@ -1377,7 +1376,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     }
 
     function isLeoVIP(address _address) public view returns (bool) {
-      return leoNFT.balanceOf(_address) > 0;
+      return leoNFT.balanceOf(_address, 6) > 0;
     }
 
     // Update the given pool's NEPTUNE allocation point and deposit fee. Can only be called by the owner.
