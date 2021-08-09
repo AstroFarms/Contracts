@@ -1706,10 +1706,10 @@ contract MasterChef is Ownable, ReentrancyGuard {
         }
 
         return
-            BONUS_MULTIPLIER +
-            vipLeoRewardMultiplier +
-            vipCancerRewardMultiplier +
-            vipNeptuneRewardMultiplier;
+            BONUS_MULTIPLIER
+                .add(vipLeoRewardMultiplier)
+                .add(vipCancerRewardMultiplier)
+                .add(vipNeptuneRewardMultiplier);
     }
 
     // View function to see pending Virgos on frontend.
