@@ -1670,12 +1670,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
     }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to)
-        public
-        pure
-        returns (uint256)
-    {
-        return _to.sub(_from).add(user.bonusMultiplier);
+    function getMultiplier(
+        uint256 _from,
+        uint256 _to,
+        uint256 _bonusMultiplier
+    ) public pure returns (uint256) {
+        return _to.sub(_from).add(_bonusMultiplier);
     }
 
     function calculateBonus() public returns (uint256) {
@@ -1683,9 +1683,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
         uint256 vipCancerRewardMultiplier;
         uint256 vipNeptuneRewardMultiplier;
 
-        bool _isLeoVip = isLeoVip(_user);
-        bool _isCancerVip = isCancerVip(_user);
-        bool _isNeptuneVip = isNeptuneVip(_user);
+        bool _isLeoVip;
+        bool _isCancerVip;
+        bool _isNeptuneVip;
+
+        _isLeoVip = isLeoVip();
+        _isCancerVip = isCancerVip();
+        _isNeptuneVip = isNeptuneVip();
 
         if (_isLeoVip) {
             vipLeoRewardMultiplier = 0.5;
@@ -1731,7 +1735,8 @@ contract MasterChef is Ownable, ReentrancyGuard {
         ) {
             uint256 multiplier = getMultiplier(
                 pool.lastRewardBlock,
-                block.number
+                block.number,
+                user.bonusMultiplier
             );
             uint256 virgoReward = multiplier
                 .mul(VirgoPerBlock)
@@ -1755,6 +1760,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
@@ -1765,7 +1771,11 @@ contract MasterChef is Ownable, ReentrancyGuard {
 
         user.bonusMultiplier = calculateBonus();
 
-        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+        uint256 multiplier = getMultiplier(
+            pool.lastRewardBlock,
+            block.number,
+            user.bonusMultiplier
+        );
         uint256 virgoReward = multiplier
             .mul(VirgoPerBlock)
             .mul(pool.allocPoint)
