@@ -1834,9 +1834,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accVirgoPerShare).div(1e12).sub(
-            user.rewardDebt
-        );
+        user.bonusMultiplier = calculateBonus(msg.sender);
+        uint256 pending = user
+            .amount
+            .mul(pool.accVirgoPerShare)
+            .div(1e12)
+            .sub(user.rewardDebt)
+            .mul(user.bonusMultiplier);
         if (pending > 0) {
             safeVirgoTransfer(msg.sender, pending);
         }
@@ -1845,7 +1849,9 @@ contract MasterChef is Ownable, ReentrancyGuard {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
             pool.lpSupply = pool.lpSupply.sub(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12).mul(
+            user.bonusMultiplier
+        );
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
