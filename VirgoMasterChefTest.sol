@@ -1753,7 +1753,8 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 .mul(accVirgoPerShare)
                 .div(1e12)
                 .sub(user.rewardDebt)
-                .mul(bonusMultiplier);
+                .mul(bonusMultiplier)
+                .div(100);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -1822,9 +1823,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 pool.lpSupply = pool.lpSupply.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12).mul(
-            user.bonusMultiplier
-        );
+        user.rewardDebt = user
+            .amount
+            .mul(pool.accVirgoPerShare)
+            .div(1e12)
+            .mul(user.bonusMultiplier)
+            .dibv(100);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -1840,7 +1844,8 @@ contract MasterChef is Ownable, ReentrancyGuard {
             .mul(pool.accVirgoPerShare)
             .div(1e12)
             .sub(user.rewardDebt)
-            .mul(user.bonusMultiplier);
+            .mul(user.bonusMultiplier)
+            .div(100);
         if (pending > 0) {
             safeVirgoTransfer(msg.sender, pending);
         }
@@ -1849,9 +1854,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
             pool.lpSupply = pool.lpSupply.sub(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12).mul(
-            user.bonusMultiplier
-        );
+        user.rewardDebt = user
+            .amount
+            .mul(pool.accVirgoPerShare)
+            .div(1e12)
+            .mul(user.bonusMultiplier)
+            .div(100);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
