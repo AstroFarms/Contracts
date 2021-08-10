@@ -1495,7 +1495,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     struct PoolInfo {
         IBEP20 lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. VIRGOs to distribute per block.
-        uint256 lastRewardBlock; // Last block number that VIRGOs distribution occurs.
+        uint256 lastRewardBlock; // Last block number that VIRGOs distribution occured.
         uint256 accVirgoPerShare; // Accumulated VIRGOs per share, times 1e12. See below.
         uint16 depositFeeBP; // Deposit fee in basis points
         uint256 lpSupply;
@@ -1508,7 +1508,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // VIRGO tokens created per block.
     uint256 public VirgoPerBlock;
     // Bonus muliplier for early virgo makers.
-    uint256 public constant BONUS_MULTIPLIER = 1;
+    uint256 public constant BONUS_MULTIPLIER = 100;
     // Deposit Fee address
     address public feeAddress;
 
@@ -1670,15 +1670,15 @@ contract MasterChef is Ownable, ReentrancyGuard {
     }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(
-        uint256 _from,
-        uint256 _to,
-        uint256 _bonusMultiplier
-    ) public pure returns (uint256) {
-        return _to.sub(_from).add(_bonusMultiplier);
+    function getMultiplier(uint256 _from, uint256 _to)
+        public
+        pure
+        returns (uint256)
+    {
+        return _to.sub(_from);
     }
 
-    function calculateBonus() public returns (uint256) {
+    function calculateBonus(address _user) public view returns (uint256) {
         uint256 vipLeoRewardMultiplier;
         uint256 vipCancerRewardMultiplier;
         uint256 vipNeptuneRewardMultiplier;
@@ -1687,24 +1687,24 @@ contract MasterChef is Ownable, ReentrancyGuard {
         bool _isCancerVip;
         bool _isNeptuneVip;
 
-        _isLeoVip = isLeoVip();
-        _isCancerVip = isCancerVip();
-        _isNeptuneVip = isNeptuneVip();
+        _isLeoVip = isLeoVip(_user);
+        _isCancerVip = isCancerVip(_user);
+        _isNeptuneVip = isNeptuneVip(_user);
 
         if (_isLeoVip) {
-            vipLeoRewardMultiplier = 0.5;
+            vipLeoRewardMultiplier = 50;
         } else {
             vipLeoRewardMultiplier = 0;
         }
 
         if (_isCancerVip) {
-            vipCancerRewardMultiplier = 0.25;
+            vipCancerRewardMultiplier = 25;
         } else {
             vipCancerRewardMultiplier = 0;
         }
 
         if (_isNeptuneVip) {
-            vipNeptuneRewardMultiplier = 0.25;
+            vipNeptuneRewardMultiplier = 25;
         } else {
             vipNeptuneRewardMultiplier = 0;
         }
@@ -1713,7 +1713,8 @@ contract MasterChef is Ownable, ReentrancyGuard {
             BONUS_MULTIPLIER
                 .add(vipLeoRewardMultiplier)
                 .add(vipCancerRewardMultiplier)
-                .add(vipNeptuneRewardMultiplier);
+                .add(vipNeptuneRewardMultiplier)
+                .div(100);
     }
 
     // View function to see pending Virgos on frontend.
@@ -1725,8 +1726,9 @@ contract MasterChef is Ownable, ReentrancyGuard {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accVirgoPerShare = pool.accVirgoPerShare;
+        uint256 bonusMultiplier;
 
-        user.bonusMultiplier = calculateBonus();
+        bonusMultiplier = calculateBonus(_user);
 
         if (
             block.number > pool.lastRewardBlock &&
@@ -1735,8 +1737,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         ) {
             uint256 multiplier = getMultiplier(
                 pool.lastRewardBlock,
-                block.number,
-                user.bonusMultiplier
+                block.number
             );
             uint256 virgoReward = multiplier
                 .mul(VirgoPerBlock)
@@ -1746,7 +1747,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 virgoReward.mul(1e12).div(pool.lpSupply)
             );
         }
-        return user.amount.mul(accVirgoPerShare).div(1e12).sub(user.rewardDebt);
+        return
+            user
+                .amount
+                .mul(accVirgoPerShare)
+                .div(1e12)
+                .sub(user.rewardDebt)
+                .mul(bonusMultiplier);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -1760,7 +1767,6 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_user];
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
@@ -1769,13 +1775,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
             return;
         }
 
-        user.bonusMultiplier = calculateBonus();
-
-        uint256 multiplier = getMultiplier(
-            pool.lastRewardBlock,
-            block.number,
-            user.bonusMultiplier
-        );
+        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 virgoReward = multiplier
             .mul(VirgoPerBlock)
             .mul(pool.allocPoint)
@@ -1793,9 +1793,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
-
-        user.bonusMultiplier = calculateBonus();
-
+        user.bonusMultiplier = calculateBonus(msg.sender);
         if (user.amount > 0) {
             uint256 pending = user
                 .amount
@@ -1824,7 +1822,9 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 pool.lpSupply = pool.lpSupply.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12).mul(
+            user.bonusMultiplier
+        );
         emit Deposit(msg.sender, _pid, _amount);
     }
 
