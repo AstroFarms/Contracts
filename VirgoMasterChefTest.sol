@@ -1828,7 +1828,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
             .mul(pool.accVirgoPerShare)
             .div(1e12)
             .mul(user.bonusMultiplier)
-            .dibv(100);
+            .div(100);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
