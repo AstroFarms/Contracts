@@ -1772,7 +1772,6 @@ contract MasterChef is Ownable, ReentrancyGuard {
             .mul(VirgoPerBlock)
             .mul(pool.allocPoint)
             .div(totalAllocPoint);
-        virgo.mint(devaddr, virgoReward.div(10));
         virgo.mint(address(this), virgoReward);
         pool.accVirgoPerShare = pool.accVirgoPerShare.add(
             virgoReward.mul(1e18).div(pool.lpSupply)
