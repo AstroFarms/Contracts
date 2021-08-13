@@ -1494,35 +1494,37 @@ contract MasterChef is Ownable, ReentrancyGuard {
     struct PoolInfo {
         IBEP20 lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. VIRGOs to distribute per block.
-        uint256 lastRewardBlock; // Last block number that VIRGOs distribution occurs.
-        uint256 accVirgoPerShare; // Accumulated VIRGOs per share, times 1e12. See below.
+        uint256 lastRewardBlock; // Last block number that VIRGOs distribution occured.
+        uint256 accVirgoPerShare; // Accumulated VIRGOs per share, times 1e18. See below.
         uint16 depositFeeBP; // Deposit fee in basis points
         uint256 lpSupply;
     }
 
     // The VIRGO TOKEN!
-    VirgoToken public virgo;
+    VirgoToken public immutable virgo;
     // Dev address.
     address public devaddr;
     // VIRGO tokens created per block.
     uint256 public VirgoPerBlock;
-    // Bonus muliplier for early virgo makers.
-    uint256 public constant BONUS_MULTIPLIER = 1;
+    // Max VirgoPerBlock;
+    uint256 public MAX_EMISSION_RATE = 1000000000000000000;
+    // Bonus muliplier used for calculating NFT rewards.
+    uint256 public constant BONUS_MULTIPLIER = 100;
     // Deposit Fee address
     address public feeAddress;
 
     // The LEO NFT
-    ForgeToken public forgeTokenLeo;
+    ForgeToken public immutable forgeTokenLeo;
     // LEO NFT ID
-    uint256 nftIdLeo;
+    uint256 immutable nftIdLeo;
     // The CANCER NFT
-    ForgeToken public forgeTokenCancer;
+    ForgeToken public immutable forgeTokenCancer;
     // LEO CANCER ID
-    uint256 nftIdCancer;
+    uint256 immutable nftIdCancer;
     // The NEPTUNE NFT
-    ForgeToken public forgeTokenNeptune;
+    ForgeToken public immutable forgeTokenNeptune;
     // LEO NEPTUNE ID
-    uint256 nftIdNeptune;
+    uint256 immutable nftIdNeptune;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -1677,6 +1679,45 @@ contract MasterChef is Ownable, ReentrancyGuard {
         return _to.sub(_from);
     }
 
+    function calculateBonus(address _user) public view returns (uint256) {
+        uint256 vipLeoRewardMultiplier;
+        uint256 vipCancerRewardMultiplier;
+        uint256 vipNeptuneRewardMultiplier;
+
+        bool _isLeoVip;
+        bool _isCancerVip;
+        bool _isNeptuneVip;
+
+        _isLeoVip = isLeoVip(_user);
+        _isCancerVip = isCancerVip(_user);
+        _isNeptuneVip = isNeptuneVip(_user);
+
+        if (_isLeoVip) {
+            vipLeoRewardMultiplier = 50;
+        } else {
+            vipLeoRewardMultiplier = 0;
+        }
+
+        if (_isCancerVip) {
+            vipCancerRewardMultiplier = 25;
+        } else {
+            vipCancerRewardMultiplier = 0;
+        }
+
+        if (_isNeptuneVip) {
+            vipNeptuneRewardMultiplier = 25;
+        } else {
+            vipNeptuneRewardMultiplier = 0;
+        }
+
+        return
+            BONUS_MULTIPLIER
+                .add(vipLeoRewardMultiplier)
+                .add(vipCancerRewardMultiplier)
+                .add(vipNeptuneRewardMultiplier)
+                .div(100);
+    }
+
     // View function to see pending Virgos on frontend.
     function pendingVirgo(uint256 _pid, address _user)
         external
@@ -1686,6 +1727,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accVirgoPerShare = pool.accVirgoPerShare;
+
         if (
             block.number > pool.lastRewardBlock &&
             pool.lpSupply != 0 &&
@@ -1700,10 +1742,10 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 .mul(pool.allocPoint)
                 .div(totalAllocPoint);
             accVirgoPerShare = accVirgoPerShare.add(
-                virgoReward.mul(1e12).div(pool.lpSupply)
+                virgoReward.mul(1e18).div(pool.lpSupply)
             );
         }
-        return user.amount.mul(accVirgoPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accVirgoPerShare).div(1e18).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -1724,6 +1766,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
             pool.lastRewardBlock = block.number;
             return;
         }
+
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 virgoReward = multiplier
             .mul(VirgoPerBlock)
@@ -1732,7 +1775,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         virgo.mint(devaddr, virgoReward.div(10));
         virgo.mint(address(this), virgoReward);
         pool.accVirgoPerShare = pool.accVirgoPerShare.add(
-            virgoReward.mul(1e12).div(pool.lpSupply)
+            virgoReward.mul(1e18).div(pool.lpSupply)
         );
         pool.lastRewardBlock = block.number;
     }
@@ -1746,9 +1789,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
             uint256 pending = user
                 .amount
                 .mul(pool.accVirgoPerShare)
-                .div(1e12)
+                .div(1e18)
                 .sub(user.rewardDebt);
             if (pending > 0) {
+                uint256 multiplier = calculateBonus(msg.sender);
+                if (multiplier != 100) {
+                    pending = pending.mul(multiplier).div(100);
+                }
                 safeVirgoTransfer(msg.sender, pending);
             }
         }
@@ -1759,7 +1806,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 address(this),
                 _amount
             );
-            _amount = pool.lpToken.balanceOf(address(this)) - balanceBefore;
+            _amount = pool.lpToken.balanceOf(address(this)).sub(balanceBefore);
             if (pool.depositFeeBP > 0) {
                 uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
                 pool.lpToken.safeTransfer(feeAddress, depositFee);
@@ -1770,7 +1817,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 pool.lpSupply = pool.lpSupply.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e18);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -1780,10 +1827,14 @@ contract MasterChef is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accVirgoPerShare).div(1e12).sub(
+        uint256 pending = user.amount.mul(pool.accVirgoPerShare).div(1e18).sub(
             user.rewardDebt
         );
         if (pending > 0) {
+            uint256 multiplier = calculateBonus(msg.sender);
+            if (multiplier != 100) {
+                pending = pending.mul(multiplier).div(100);
+            }
             safeVirgoTransfer(msg.sender, pending);
         }
         if (_amount > 0) {
@@ -1791,7 +1842,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
             pool.lpSupply = pool.lpSupply.sub(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accVirgoPerShare).div(1e18);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -1828,6 +1879,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Update dev address.
     function setDevAddress(address _devaddr) external {
         require(msg.sender == devaddr, "dev: wut?");
+        require(_devaddr != address(0), "!nonzero");
         devaddr = _devaddr;
         emit SetDevAddress(msg.sender, _devaddr);
     }
@@ -1841,6 +1893,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
     function updateEmissionRate(uint256 _VirgoPerBlock) external onlyOwner {
+        require(_VirgoPerBlock <= MAX_EMISSION_RATE, "Too high");
         massUpdatePools();
         VirgoPerBlock = _VirgoPerBlock;
         emit UpdateEmissionRate(msg.sender, _VirgoPerBlock);
