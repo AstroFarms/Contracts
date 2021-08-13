@@ -1794,7 +1794,11 @@ contract MasterChef is Ownable, ReentrancyGuard {
             if (pending > 0) {
                 uint256 multiplier = calculateBonus(msg.sender);
                 if (multiplier != 100) {
-                    pending = pending.mul(multiplier).div(100);
+                    uint256 bonus = pending.mul(multiplier).div(100).sub(
+                        pending
+                    );
+                    virgo.mint(address(this), bonus);
+                    pending = pending.add(bonus);
                 }
                 safeVirgoTransfer(msg.sender, pending);
             }
@@ -1833,7 +1837,9 @@ contract MasterChef is Ownable, ReentrancyGuard {
         if (pending > 0) {
             uint256 multiplier = calculateBonus(msg.sender);
             if (multiplier != 100) {
-                pending = pending.mul(multiplier).div(100);
+                uint256 bonus = pending.mul(multiplier).div(100).sub(pending);
+                virgo.mint(address(this), bonus);
+                pending = pending.add(bonus);
             }
             safeVirgoTransfer(msg.sender, pending);
         }
@@ -1893,7 +1899,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
     function updateEmissionRate(uint256 _VirgoPerBlock) external onlyOwner {
-        require(_VirgoPerBlock <= MAX_EMISSION_RATE, "Too high");
+        require(_VirgoPerBlock <= MAX_EMISSION_RATE, "emission rate too high");
         massUpdatePools();
         VirgoPerBlock = _VirgoPerBlock;
         emit UpdateEmissionRate(msg.sender, _VirgoPerBlock);
