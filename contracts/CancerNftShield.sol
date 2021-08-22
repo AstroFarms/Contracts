@@ -1035,9 +1035,12 @@ contract CancerNftShield is BEP20("Cancer Nft Shield", "CANCERshield") {
     // Purchases the NFT Shield with the amount of purchaseTokens equal to the shieldPrice
     // and instantly burns half the tokens used to purchase
     function buyNftShield() external {
-        require(purchaseToken.balanceOf(msg.sender) >= shieldPrice, "Not enough tokens to purchase");
+        require(
+            purchaseToken.balanceOf(msg.sender) >= shieldPrice,
+            "Not enough tokens to purchase"
+        );
         purchaseToken.transferFrom(msg.sender, address(this), shieldPrice);
-        _mint(msg.sender, 1);
+        _mint(msg.sender, 1000000000000000000);
         uint256 purchaseTokenBalance = purchaseToken.balanceOf(address(this));
         if (purchaseTokenBalance > 0) {
             uint256 amountToBurn = purchaseTokenBalance.div(2);
@@ -1047,14 +1050,14 @@ contract CancerNftShield is BEP20("Cancer Nft Shield", "CANCERshield") {
     }
 
     // admin function to withdraw the tokens that have been deposited in the
-    function withdrawCancerTokens() internal onlyOwner {
+    function withdrawCancerTokens() internal {
         uint256 purchaseTokenBalance = purchaseToken.balanceOf(address(this));
         if (purchaseTokenBalance > 0) {
             purchaseToken.transfer(admin, purchaseTokenBalance);
         }
     }
 
-    function burnCancerTokens(uint256 amount) internal onlyOwner {
+    function burnCancerTokens(uint256 amount) internal {
         uint256 purchaseTokenBalance = purchaseToken.balanceOf(address(this));
         if (purchaseTokenBalance > 0) {
             purchaseToken.transfer(burnAddress, amount);

@@ -1040,7 +1040,7 @@ contract LeoNftShield is BEP20("Leo Nft Shield", "LEOshield") {
             "Not enough tokens to purchase"
         );
         purchaseToken.transferFrom(msg.sender, address(this), shieldPrice);
-        _mint(msg.sender, 1);
+        _mint(msg.sender, 1000000000000000000);
         uint256 purchaseTokenBalance = purchaseToken.balanceOf(address(this));
         if (purchaseTokenBalance > 0) {
             withdrawLeoTokens();
@@ -1048,7 +1048,7 @@ contract LeoNftShield is BEP20("Leo Nft Shield", "LEOshield") {
     }
 
     // admin function to withdraw the tokens that have been deposited in the
-    function withdrawLeoTokens() internal onlyOwner {
+    function withdrawLeoTokens() internal {
         uint256 purchaseTokenBalance = purchaseToken.balanceOf(address(this));
         if (purchaseTokenBalance > 0) {
             purchaseToken.transfer(admin, purchaseTokenBalance);

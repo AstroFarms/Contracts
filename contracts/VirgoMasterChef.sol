@@ -1,7 +1,3 @@
-/**
- *Submitted for verification at polygonscan.com on 2021-07-30
- */
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
@@ -1527,7 +1523,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
     uint256 immutable nftIdNeptune;
     // The VIRGO POWERUP NFT
     ForgeToken public immutable forgeTokenVirgo;
-    // VIRGO NEPTUNE ID 
+    // VIRGO NEPTUNE ID
     uint256 immutable nftIdVirgo;
 
     // Info of each pool.
@@ -1574,7 +1570,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         ForgeToken _forgeTokenCancer,
         uint256 _nftIdCancer,
         ForgeToken _forgeTokenNeptune,
-        uint256 _nftIdNeptune
+        uint256 _nftIdNeptune,
         ForgeToken _forgeTokenVirgo,
         uint256 _nftIdVirgo
     ) public {
@@ -1589,8 +1585,8 @@ contract MasterChef is Ownable, ReentrancyGuard {
         nftIdCancer = _nftIdCancer;
         forgeTokenNeptune = _forgeTokenNeptune;
         nftIdNeptune = _nftIdNeptune;
-        forgeTokenVirgo = _forgeTokenVirgo,
-        nftIdVirgo = _nftIdVirgo
+        forgeTokenVirgo = _forgeTokenVirgo;
+        nftIdVirgo = _nftIdVirgo;
     }
 
     function poolLength() external view returns (uint256) {
@@ -1695,7 +1691,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
         return _to.sub(_from);
     }
 
-    //Calculate the bonus multipler based on which NFT's the user is holding. 
+    //Calculate the bonus multipler based on which NFT's the user is holding.
     function calculateBonus(address _user) public view returns (uint256) {
         uint256 vipLeoRewardMultiplier;
         uint256 vipCancerRewardMultiplier;
@@ -1736,13 +1732,12 @@ contract MasterChef is Ownable, ReentrancyGuard {
             vipVirgoRewardMultiplier = 0;
         }
 
-        return
-            BONUS_MULTIPLIER
-                .add(vipLeoRewardMultiplier)
-                .add(vipCancerRewardMultiplier)
-                .add(vipNeptuneRewardMultiplier)
-                .add(vipVirgoRewardMultiplier)
-                .div(100);
+        uint256 totalReward = vipLeoRewardMultiplier
+            .add(vipCancerRewardMultiplier)
+            .add(vipNeptuneRewardMultiplier)
+            .add(vipVirgoRewardMultiplier);
+
+        return BONUS_MULTIPLIER.add(totalReward);
     }
 
     // View function to see pending Virgos on frontend.
@@ -1772,6 +1767,7 @@ contract MasterChef is Ownable, ReentrancyGuard {
                 virgoReward.mul(1e18).div(pool.lpSupply)
             );
         }
+
         return user.amount.mul(accVirgoPerShare).div(1e18).sub(user.rewardDebt);
     }
 
